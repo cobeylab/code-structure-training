@@ -53,7 +53,7 @@ We can also start to think about what we want from functions across all of our c
 
 ### Example
 
-To take an extreme example, consider the following code.
+To take an extreme example, consider the following implementation of [Bayes' Rule](https://en.wikipedia.org/wiki/Bayes%27_theorem).
 
 ```python
 pos_a = 3
@@ -121,7 +121,7 @@ print(p_of_a_given_b)
 
 It's a little easier to understand already. Now let's generalize over some of the instances of division with a function `p`.
 
-And now that we know that `p_of_a` and `p_of_b` are the result of the `p` computation (which is really looking like probability) we can change them to `A` and `B`.
+And now that we know that `p_of_a` and `p_of_b` are the result of the `p` computation we can change them to `A` and `B`.
 
 ```python
 pos_a = 3
