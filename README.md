@@ -92,7 +92,7 @@ There is no need to think about this code in a novel way. We don't even need to 
 
 First, recognize that variables such as `pos_b` are data, and they're unchanged throughout so we can group them together at the beginning. We can think of them as separate from computation.
 
-We can also remove any repetition of the same calculation. (This doesn't go back to the Theoretical Framework but it adds complexity and is very common. More on this in [DRY](#dry). The issue of using different levels of abstraction is also fixed this way and can be thought of as an application of the DRY principle.)
+We can also remove any repetition of the same calculation. (This doesn't go back to the Theoretical Framework but it adds complexity and is very common. More on this in [DRY](#dont-repeat-yourself-dry). The issue of using different levels of abstraction is also fixed this way and can be thought of as an application of the DRY principle.)
 
 ```python
 pos_a = 3
