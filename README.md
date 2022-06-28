@@ -19,7 +19,7 @@ We will focus on the basic aspects of structuring code at a small scale, and min
 
 ## Motivation
 
-One of the main barriers to code reuse in general is complexity. It inhibits the author's ability to produce the code, and the user's ability to understand and sometimes to run the code at all. In science, this phenomenon is even more acute since the stakes may be the applications affect on the scientific community and scientific knowledge, and most authors are not professional software developers.
+Complexity is one of the main barriers to code reuse. It inhibits the author's ability to produce the code, and the user's ability to understand and sometimes to run the code at all. In science, this phenomenon is even more acute since the stakes may be the applications effect on the scientific community and scientific knowledge.
 
 At the far end of the spectrum of unmaintainable code is code that, practically speaking, won't run without the author's file formats, local environment, or know-how. As an application gets larger, the effect is compounded. Large applications are much, much more complex than small ones. As an application grows, it's common to hit a "wall" where progress becomes difficult or prohibitive.
 
@@ -72,7 +72,7 @@ p_of_a_and_b = p_of_a * p_of_b
 
 p_of_b_given_a = p_of_a_and_b / p_of_b
 
-p_of_a_given_occ_b = p_of_b_given_a * p_of_a
+p_of_a_given_occ_b = p_of_a_and_b / p_of_b * occ_a / pos_a
 
 p_of_a_given_b = p_of_a_given_occ_b / p_of_b
 
@@ -83,13 +83,16 @@ print(p_of_a_given_b)
 
 This code is perfectly legitimate in that it runs and does something useful, computing 0.59. There are three problems with its code structure, however.
 
-1. It only computes one thing with one set of numbers as input. The values are "hard coded."
-2. There's repetition for what seems to be the same computation (`p_of_b` and `p_of_a` are computed the same way).
+1. It only computes one thing with one set of numbers as input. The values are "hard coded" and there are no functions to call again with different values.
+2. There's repetition for what seems to be the same algorithm (`p_of_b` and `p_of_a` are computed the same way). There's repetition of the same calculation `p_of_a_and_b / p_of_b`.
 3. There's very little abstraction. Each line does one operation and only the variable names give an idea of the author's intention.
+4. There are different "levels" of abstraction. `p_of_a_given_occ_b` goes back to using input values when it could be composed of "higher level" computations.
 
 There is no need to think about this code in a novel way. We don't even need to know what it does to make it simpler and more understandable. We know that it can be composed of functions and data.
 
 First, recognize that variables such as `pos_b` are data, and they're unchanged throughout so we can group them together at the beginning. We can think of them as separate from computation.
+
+We can also remove any repetition of the same calculation. (This doesn't go back to the Theoretical Framework but it adds complexity and is very common. More on this in [DRY](#dry). The issue of using different levels of abstraction is also fixed this way and can be thought of as an application of the DRY principle.)
 
 ```python
 pos_a = 3
@@ -299,7 +302,7 @@ We know programs can be decomposed into functions and data. We know that by usin
 
 ### Scope
 
-Most programming languages include the concept of scope. Scope is defined as the section of source code in which a variable or function can be accessed. It is the place or places where a name is defined.
+Most programming languages include the concept of scope. Scope is the section of source code in which a variable or function can be accessed. It is the place or places where a name is defined.
 
 ```python
 def somefunc():
@@ -346,6 +349,8 @@ print(x * y)
 ```
 
 Lest we forget how malleable (and how large and complex) software can be, `run_something()` could be thousands of lines of code, and we would not be guaranteed of any `x * y` because `run_something` may have changed them. We certainly couldn't use the logic of replacement to replace `x` with `3` in the last line and be certain the output is unchanged.
+
+_Note: In Python, `run_something` could modify `x` or `y` but they would need to be prefaced with `global` in the function._
 
 The analogy in scientific publishing would be that a variable x in a complex scientific paper could be affected by other functions, not because they are involved in the computation of x, but because the functions were "nearby" x, or in the same paper as x. It's much more complex to understand some equations when everything depends on everything else, rather than when we're able to think about equations in isolation.
 
@@ -407,7 +412,7 @@ Even if a program doesn't need to be rewritten, pure functions tend to be simple
 
 Functional Programming, or programming with pure functions, is part of a foundational understanding of modularity, testability, and complexity. Taken to the extreme, functional programming renders a program, in the words of one of the authors of the Haskell programming language, Simon Peyton Jones, "useless." A strictly pure application cannot have any side effects, and cannot effect the world. Running it on a computer will have one effect. The machine ["gets hot."](https://youtu.be/iSmkqocn0oQ?t=193)
 
-This is a slight exaggeration since functional programs are usually allowed to have the side effect of writing their output to disk, or the terminal, but it illustrates that there could be some limit to how far to take this. The metric that we're after here is simplicity. If isolating computation into pure functions makes it simpler, it makes sense that breaking the challenge of avoiding side effects into small pieces does too. In other words, if it is more difficult to think about writing a large application that behaves as a pure function, don't do it. Break the problem into pure functions whenever possible, and simplify dependencies and side effects elsewhere.
+This is a slight exaggeration since functional programs are usually allowed to have the side effect of writing their output to disk, or the terminal, but it illustrates that there could be some limit to how far to take this. The metric that we're after here is simplicity. If isolating computation into pure functions makes it simpler, it makes sense that breaking the challenge of avoiding side effects into small pieces does too. In other words, if it is more difficult to think about writing a large application that behaves as a pure function, simplicity is lost. Break the problem into pure functions whenever possible, and simplify dependencies and side effects elsewhere.
 
 A great example of system design that has lasted for over 50 years is Unix, which has a lot in common with limited functional programming. 1. Model computation as sets of input and output. 2. Write small pure functions (commands). 3. Use side effects liberally at the boundaries of these functions (usually writing to disk or the terminal).
 
@@ -498,7 +503,20 @@ This may seem like a silly example since the reorganization was so simple and ob
 
 The connection between Separation of Concerns and the foundational principles of computing, is that the principles guarantee that _any separation of concerns_ is possible. In the most extreme code refactoring, every computation is broken into the smallest units possible, and the desired separation of concerns is simply a repartition of those units (the only limitation being values that depend on other values).
 
-To give a concrete example, there is a methodology called Model View Controller (MVC) that says an application should be broken into functionality (the model, `multiply` and `divide` functions in [Fig. C above](#fig-c)), control of that functionality (basically, the function calls at the bottom), and the user interface (`report` function and calls thereof). This is a partitioning that can be used to write almost any computer program, and MVC has been around for 40+ years. The reason programs can be written, or rewritten, this way is due to the [theoretical framework](#theoretical-framework) and the foundations of computation.
+## Don't Repeat Yourself (DRY)
+
+The simplest way to add complexity to code is to write the same functionality in more than one place. This is an obvious but important principle with some subtlety. Once writing functions is trivial, moving anything that's written more than once into a function and calling the function is too. Particularly if the other principles such as avoiding dependencies and side-effects (purity), and SoC are followed, it's hard to go wrong with this process.
+
+DRY also applies to variables and other data. Two values that represent the same thing is usually unnecessary complexity.
+
+The subtlety of DRY coding is that repetition can have some benefits. One is the ability to modify copies of some value or algorithm independently. It can be confusing to "centralize" a piece of code and then have some variations elsewhere. The easy answer then is to add parameters so the variations are covered by the centralized copy but this is not always possible to do cleanly. And often code that is duplicated is short enough to be on the bubble between abstract-able and not. If you centralize down to a microscopic level, you end up with a new programming language all your own, and you've only added complexity.
+
+Repetition is also used to make a small process more clear in place, to prevent single-point-of-failure (say two teams working independently on the same problem), and to avoid locking a codebase into a certain architecture too early. These are all legitimate uses of repetition. As a general rule, though, repetition should be avoided. Coupled with the other principles covered, DRY will tend to make code simpler and more canonical.
+
+
+## Unifying Example: Model View Controller
+
+As a unifying example, there is a methodology called Model View Controller (MVC) that says an application should be broken into functionality (the model, `multiply` and `divide` functions in [Fig. C above](#fig-c)), control of that functionality (basically, the function calls at the bottom), and the user interface (`report` function and calls thereof). This is a partitioning that can be used to write almost any computer program, and MVC has been around for 40+ years. The reason programs can be written, or rewritten, this way is due to the [theoretical framework](#theoretical-framework) and the foundations of computation.
 
 _Note: The [intermediate form above](#fig-b) (Fig. B) would not qualify as MVC since the concern of printing (which is part of the View, or interface with the user) is mixed in with the Model._
 
