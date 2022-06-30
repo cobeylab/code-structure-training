@@ -38,7 +38,7 @@ The foundations of code organization go back to the foundations of computation, 
 
 A simpler, and correct, way to put this is that all computing, and therefore programming, consists of functions (composed of smaller computations) operating on data.
 
-What does this mean, and why does it matter?
+### What does this mean, and why does it matter?
 
 One source of complexity is the tendency of new programmers to think of the code they're writing in novel ways depending on the domain in which they're working, or what's convenient in a particular codebase. It may also be more difficult for a beginner programmer to deconstruct existing code, leading to great variety of patterns depending on what works at any given time.
 
@@ -53,7 +53,7 @@ We can also start to think about what we want from functions across all of our c
 
 ### Example
 
-To take an extreme example, consider the following code.
+To take an extreme example, consider the following implementation of [Bayes' Rule](https://en.wikipedia.org/wiki/Bayes%27_theorem).
 
 ```python
 pos_a = 3
@@ -121,7 +121,7 @@ print(p_of_a_given_b)
 
 It's a little easier to understand already. Now let's generalize over some of the instances of division with a function `p`.
 
-And now that we know that `p_of_a` and `p_of_b` are the result of the `p` computation (which is really looking like probability) we can change them to `A` and `B`.
+And now that we know that `p_of_a` and `p_of_b` are the result of the `p` computation we can change them to `A` and `B`.
 
 ```python
 pos_a = 3
@@ -389,7 +389,7 @@ def f(x):
 
 does not.
 
-2. Pure functions have no side-effects. The function can’t modify any variables outside itself.
+2. Pure functions have no side effects. The function can’t modify any variables outside itself.
 
 ```python
 g = 0
@@ -410,22 +410,30 @@ Even if a program doesn't need to be rewritten, pure functions tend to be simple
 
 ### Limits to Functional Programming
 
-Functional Programming, or programming with pure functions, is part of a foundational understanding of modularity, testability, and complexity. Taken to the extreme, functional programming renders a program, in the words of one of the authors of the Haskell programming language, Simon Peyton Jones, "useless." A strictly pure application cannot have any side effects, and cannot effect the world. Running it on a computer will have one effect. The machine ["gets hot."](https://youtu.be/iSmkqocn0oQ?t=193)
+Functional Programming, or programming with pure functions, is part of a foundational understanding of modularity, testability, and complexity. Taken to the extreme, functional programming renders a program, in the words of one of the authors of the Haskell programming language, Simon Peyton Jones, "useless." A strictly pure application cannot have any side effects, and cannot affect the world. Running it on a computer will have one effect. The machine ["gets hot."](https://youtu.be/iSmkqocn0oQ?t=193)
 
-This is a slight exaggeration since functional programs are usually allowed to have the side effect of writing their output to disk, or the terminal, but it illustrates that there could be some limit to how far to take this. The metric that we're after here is simplicity. If isolating computation into pure functions makes it simpler, it makes sense that breaking the challenge of avoiding side effects into small pieces does too. In other words, if it is more difficult to think about writing a large application that behaves as a pure function, simplicity is lost. Break the problem into pure functions whenever possible, and simplify dependencies and side effects elsewhere.
+This is a slight exaggeration since functional programs are usually allowed to have the side effect of writing their output to disk, or the terminal, but it illustrates that there could be some limit to how far to take this. The metric that we're after here is simplicity. If isolating computation into pure functions makes it simpler, it makes sense that breaking the challenge of avoiding side effects into small pieces does too. In other words, if it is more difficult to think about writing a large application that behaves as a pure function, simplicity is lost. A good compromise is to break the problem into pure functions whenever possible, and simplify dependencies and side effects elsewhere.
 
-A great example of system design that has lasted for over 50 years is Unix, which has a lot in common with limited functional programming. 1. Model computation as sets of input and output. 2. Write small pure functions (commands). 3. Use side effects liberally at the boundaries of these functions (usually writing to disk or the terminal).
+Imagine a program in which much of the complexity is in _the process producing_ side effects: writing complex files to disk, elaborate visual presentations, connecting and interacting with external services. The process itself maybe something one wants to generalize in a function. The functions might include methods for waiting for responses over a period of time, or interacting with external libraries with side effects. These functions would be terribly impure.
 
-Purely functional programs also have limitations in that they tend to have longer and longer function signatures because parameters need to be passed around instead of being made global. This tendency can be reduced by allowing immutable global variables, and in some languages such as Scala, _implicit parameters_.
+Other common hurdles include:
 
-Certain categories of functionality that are more difficult in functional programming such as writing to a log, can simply be allowed, given that they don't normally affect return values and are easy to spot while reading.
+1. A set of functions whose behavior needs to be altered by a complex data object globally.
+2. Functionality like logging, or benchmarks, or system credit use that needs to be persisted in real time, whether or not the function returns due to an error.
+3. Passing objects from external libraries with types that have nothing to do with the domain, and tend to distract from it.
+4. Methods in external libraries that produce side effects.
+5. Core functionality that involves connecting to external services.
+
+Is it simpler to think about a pure function like `log(x, SystemCreditConnection)` that returns the logarithm of x and the current balance to be aggregated up the chain of function calls? Or an impure function like `log(x)` that depends on a global variable `SystemCreditConnection` to write out the balance "in the background?" Most developers choose the latter for good reason. If simplifying is the art of thinking about things in isolation then purely functional programming suffers from not letting you ignore anything. Even if, practically speaking, some things can be.
+
+Purely functional programs also tend to have longer and longer function signatures because parameters need to be passed around instead of used globally. This tendency can be reduced by allowing global variables that don't change, and in some languages such as Scala, _implicit parameters_.
 
 For these reasons, functional programming is generally considered a North Star and not a strict goal to be achieved. For most programming tasks, the direction towards simplicity is _in the direction of_ pure functions.
 
 
 ## Separation of Concerns
 
-Another principle of code structure is Separation of Concerns. Separating concerns is breaking a program into discrete components not unlike functional programming. Separation of Concerns goes further to say that the functionality of each component should be one "concern," meaning it should be specialized. This usually happens naturally no matter why you're  making your code more modular but the principle that concerns should be separated highlights the fact that modularity is useless as a principle for thinking about things in isolation if the modules aren't _functionally_ isolated. Their functionality overlaps in complex ways even if their variables do not.
+Another core principle of code structure is Separation of Concerns. Separating concerns is breaking a program into discrete components not unlike functional programming. Separation of Concerns goes further to say that the functionality of each component should be one "concern," meaning it should be specialized. This usually happens naturally no matter why you're  making your code more modular but the principle that concerns should be separated highlights the fact that modularity is useless as a principle for thinking about things in isolation if the modules aren't conceptually isolated. Their functionality overlaps in complex ways even if their variables do not.
 
 Separation of Concerns is also limited to being a subjective measurement by a very human definition of what a "concern" is. Concerns can be thought of analytically as _things that can be changed in isolation_ without changing functionality of the application. This will depend on the application as a whole, but it gives an objective measure given some real-world concern.
 
@@ -505,7 +513,7 @@ The connection between Separation of Concerns and the foundational principles of
 
 ## Don't Repeat Yourself (DRY)
 
-The simplest way to add complexity to code is to write the same functionality in more than one place. This is an obvious but important principle with some subtlety. Once writing functions is trivial, moving anything that's written more than once into a function and calling the function is too. Particularly if the other principles such as avoiding dependencies and side-effects (purity), and SoC are followed, it's hard to go wrong with this process.
+The simplest way to add complexity to code is to write the same functionality in more than one place. This is an obvious but important principle with some subtlety. Once writing functions is trivial, moving anything that's written more than once into a function and calling the function is too. Particularly if the other principles such as avoiding dependencies and side effects (purity), and SoC are followed, it's hard to go wrong with this process.
 
 DRY also applies to variables and other data. Two values that represent the same thing is usually unnecessary complexity.
 
