@@ -958,6 +958,7 @@ The nature of computing is a blessing and a curse. Code is flexible. So extraneo
   - True
   - False
 
+### [Quiz Answers](quiz-answers.md)
 
 ## Funding and Acknowledgments
 
