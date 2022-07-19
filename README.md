@@ -1,6 +1,8 @@
 # Code Structure for Science
 ### How to write canonical software.
 
+## Part 1: Foundation, Functional Programming, Separation of Concerns
+
 ## Prerequisites
 
 Some coding experience. Understanding of basic control flow (functions, conditions, loops). Examples are in Python but concepts apply to any language.
@@ -590,10 +592,375 @@ errors = 0
 
 ### [Quiz Answers](quiz-answers.md)
 
+
+
+## Part 2: Interfaces, Step-by-step refactor
+
+## Interfaces
+
+What does it mean to "separate" concerns? Does it matter that code is kept in separate parts of a file? Or different files? Different applications? These are good organizational tools. And physical separation may mean that two pieces of code can be thought of independently, but it is not sufficient for functionally separate concerns. Independent components are separated by well-defined interfaces.
+
+Interfaces are ways in which we can signify and control some set of computations by characterizing the data that is passed to a component, and the data that is returned by it. The simplest interface is a function signature.
+
+```python
+
+def add_then_double(x, y): # <-- the signature
+  return (x + y) * 2
+
+```
+
+This is a simple function with signature `add_then_double(x, y)`. It defines the name of the function and the parameters it accepts. In other languages, the signature might be more strict with specific types (string, integer, double etc) it accepts and type that it returns. In Python it's a very simple name, and number of parameters.
+
+The signature defines how the function can be used. It is well-defined because it is explicit, it's restrictive, and it's in one place.
+
+Let's consider the same functionality with no interface.
+
+```python
+import sys
+
+x = int(sys.argv[1])
+
+y = # put argument here
+
+import scale from scales
+
+(x + y) * scale * 2
+```
+
+This code could be thought of as having an interface. You can set the first argument through the command line (sys.argv will read a string from the command line arguments). You could edit the file to put a `y` argument, prevent `scale` from affecting the outcome by editing the scales module, and run this in a python REPL so that `(x + y) * scale * 2` prints something out. That would be an interface of some kind. From the Theoretical Framework, we know that all computation is a set input/output pairs. So why doesn't this code have an interface?
+
+This code has no well-defined interface. It's not explicit, restrictive (if part of the interface is editing the file, anything is possible), and it's not in "one place."
+
+Quantitatively, it's easiest to think of an interface as one that programming languages understand such as functions, but there are other well-defined interfaces like web APIs, or command-line programs. These behave like functions but they're not language structures directly.
+
+Another way to think of interfaces in the input/output paradigm is as column names. If you were to take a function, or application, or whole computer, anything tat can be expressed as a table of corresponding input and output, the interface would be the column names.
+
+| Input                    | Output                |
+|--------------------------|-----------------------|
+
+| x            | y         | add_then_double(x, y) |
+|--------------|-----------|-----------------------|
+| 0            | 1         | 2                     |
+| 1            | 2         | 6                     |
+| 2            | 3         | 10                    |
+
+
+The reason interfaces are so important to the overall theme of reducing complexity is that, when you're reasoning about two pieces of code separately, the interface is what you're using to do that reasoning. The interface characterizes, and limits the input/output pairs so they can be considered separately from other sets of input/ouput pairs.
+
+For example, the simplest way to think about this code that we'll refactor in the next section, is not in individual lines such as `alpha[1]*s[2]*lambda2 - gamma[1]*s[3] - mu * s[3]` but as "part of `step_diff_eqs` that is a function of s, h, and t." We can reason about all of the code in the function using its interface:
+
+### Fig. D
+```python
+import numpy as np
+
+end_time = 365000
+output_interval = 365.0
+step_size = 1.0
+ic = [0.2, 0.001, 0.02, 0.0, 0.001, 0.02, 0.0, 0.758]
+gamma = [0.14285714, 0.14285714]
+mu = 0.000273972602739726
+alpha = [1., 1.]
+a = [1., 1.]
+omega = 0.01721420632103996
+beta = [0.14285714, 0.71428571]
+epsilon = 0.1
+
+def step_diff_eqs(s, h, t):
+    dxdt = np.zeros(8)
+
+    # transmission rates
+    forcing = 1 + epsilon*np.cos(omega*t)
+    beta_0 = beta[0]*forcing
+    beta_1 = beta[1]*forcing
+
+    # forces of infection
+    lambda1 = beta_0*(s[1]+a[0]*s[6])
+    lambda2 = beta_1*(s[4]+a[1]*s[3])
+
+    dxdt[0] = mu - s[0] * (lambda1 + lambda2) - mu * s[0]
+    dxdt[1] = s[0]*lambda1 - gamma[0]*s[1] - mu * s[1]
+    dxdt[2] = gamma[0]*s[1] - alpha[1]*s[2]*lambda2 - mu * s[2]
+    dxdt[3] = alpha[1]*s[2]*lambda2 - gamma[1]*s[3] - mu * s[3]
+    dxdt[4] = s[0] * lambda2 - gamma[1]*s[4] - mu * s[4]
+    dxdt[5] = gamma[1]*s[4] - alpha[0]*s[5]*lambda1 - mu * s[5]
+    dxdt[6] = alpha[0]*s[5]*lambda1 - gamma[0]*s[6] - mu * s[6]
+    dxdt[7] = gamma[0] * s[6] + gamma[1]*s[3] - mu * s[7]
+    return s + np.dot(dxdt, h)
+
+output = []
+state_vars = ic
+t = 0.0
+while t < end_time:
+    state_vars = step_diff_eqs(state_vars, step_size, t)
+    t += step_size
+    if t % output_interval == 0:
+        output.append(state_vars)
+
+points = np.asarray(output)
+```
+
+## Example
+
+The code in [Figure D](#fig-b) is from a course on modeling pathogens. It's a demonstration in the class, but this code can do real work. Let's assume we're using it as part of a research project where we need a lot of of certainty, the code will become part of the support for our paper, and we may want to make this reusable at least within this analysis. Potentially, this could be the start of a longer project. For all these reasons, we want to make the code as simple as possible, and also general and interoperable with what comes after it.
+
+First, remember that there isn't an absolute standard of clarity. The way the code is structured with the most clarity depends on the domain, or purpose in the real world. In this case, we can consult the class notes to see that the code includes a system of ordinary differential equations (ODEs) that represent two strains of a pathogen interacting in a population with different transmission rates, recovery rates and other parameters.
+
+We also learn that the code will solve the system using the Euler Method, and that the equations (ODEs) are:
+
+![Differential Equations](images/equations.png)
+
+Does the code make sense now? If you're familiar with the Euler method already, or epidemiology, this snippet might be perfectly understandable but it's not in simplest form. And it could be more general and reusable particularly in the context of a paper or larger project. Recall all the the principles that have been covered. Is there repetition in the code? Are concerns separated? Are there well-defined interfaces between components? Are there opportunities to simplify a scope? Are there a lot of side-effects, and can it be made more purely-functional?
+
+For the sake of simplicity, and for building on top of this code, the answer is that it does not separate concerns. The two concerns implemented are: computing the differential equations, and the Euler method. The two concerns are "coupled" in the code. There's no way to run one without the other, and the boundary between the two algorithms is not an interface.
+
+
+## Refactoring the Code
+
+The Euler Method is an algorithm for approximating a function from a system of differential equations. The system in this case is the set of equations in the image above. They are implemented in Python in `step_diff_eqs` in [Figure D](#fig-d). Any implementation of the method would need to take these equations as input and return a set of points that approximate the function represented by the equations.
+
+![Visual representation of Euler method](images/euler_method.png)
+
+At each iteration, the method evaluates the differential equations, uses the resulting slope multiplied by the step size as an approximation of how much the function will change in one time step, and uses the output as its next starting point. The details are reflected in the code, and on [Wikipedia](https://en.wikipedia.org/wiki/Euler_method). They're important to know only because we need to know where Euler begins and ends in the code.
+
+![Euler method equations](images/euler_algorithm.png)
+
+So we want to separate this into two concerns with an interface between them. Function signatures are the interfaces of choice here, and we already have a function for the differential equations. So let's write an `euler` function.
+
+The function signature can be written in advance because we know what the Euler method is. It is an algorithm that takes ODEs and an initial value as input, and returns a set of points. So the interface is:
+
+### Fig. E
+
+```python
+def euler(f, y0, h):
+
+    # code goes here
+
+    return points
+```
+
+It's a little more complicated than that because we can't compute `f` over and over indefinitely. We need to know where to stop. So we'll add an `end` parameter.
+
+```python
+def euler(f, y0, h, end):
+
+    # code goes here
+
+    return points
+```
+
+This helps to frame our thinking before we get pulled into the complexities of the code. We know this interface must be correct by the definition of the Euler method. This is just another rephrasing of [basic computational assumptions](#theoretical-framework): algorithms require data. If we know what data is required for an algorithm, we can restrict it to using that data without knowing anything else about it.
+
+All that's left is matching up the variable names, pulling the code associated with Euler into the new function, and calling the function in place of that code.
+
+[Figure F](#fig-f) shows a simplified version of what we will do with the pathogen simulation code. Starting from a few lines that add, then double something, pull out all the adding-then-doubling code, put it in a new function (with an interface we already know is going to take two numbers, returning a number) and then call the function in place of the code we removed:
+
+### Fig. F
+
+_Before:_
+
+```python
+num1 = 1
+num2 = 2
+
+# some code that adds, then doubles
+(num1 + num2) * 2
+```
+
+_After:_
+
+```python
+def add_then_double(x, y):
+    return (x + y) * 2
+
+num1 = 1
+num2 = 2
+
+add_then_double(num1, num2)
+```
+
+Notice that the parameter names don't need to be the same as the names in the rest of the code. This is often desirable because _the function and the function call may be in different domains._ Let's say `add_then_double` is a general algorithm used in economics, and cryptography, and in the description of mitosis. The arguments would be called something like `cell1`/`cell2`, or `alice`/`bob` but `add_then_double` is a general algorithm about numbers so we keep the x, and y.
+
+In the case of the pathogen code, this is definitely true because the ODEs are in the domain of infectious disease, and Euler is a general algorithm used in many domains. And, critically, it may be used again in this hypothetical project. Suppose we want to model three pathogens instead of two. We'll want to call `euler` again with different input.
+
+
+### Fig. G Adding an `euler` function using existing code with variable names replaced.
+```python
+import numpy as np
+
+end_time = 365000
+output_interval = 365.0
+step_size = 1.0
+ic = [0.2, 0.001, 0.02, 0.0, 0.001, 0.02, 0.0, 0.758]
+gamma = [0.14285714, 0.14285714]
+mu = 0.000273972602739726
+alpha = [1., 1.]
+a = [1., 1.]
+omega = 0.01721420632103996
+beta = [0.14285714, 0.71428571]
+epsilon = 0.1
+
+def step_diff_eqs(s, h, t):
+    dxdt = np.zeros(8)
+
+    # transmission rates
+    forcing = 1 + epsilon*np.cos(omega*t)
+    beta_0 = beta[0]*forcing
+    beta_1 = beta[1]*forcing
+
+    # forces of infection
+    lambda1 = beta_0*(s[1]+a[0]*s[6])
+    lambda2 = beta_1*(s[4]+a[1]*s[3])
+
+    dxdt[0] = mu - s[0] * (lambda1 + lambda2) - mu * s[0]
+    dxdt[1] = s[0]*lambda1 - gamma[0]*s[1] - mu * s[1]
+    dxdt[2] = gamma[0]*s[1] - alpha[1]*s[2]*lambda2 - mu * s[2]
+    dxdt[3] = alpha[1]*s[2]*lambda2 - gamma[1]*s[3] - mu * s[3]
+    dxdt[4] = s[0] * lambda2 - gamma[1]*s[4] - mu * s[4]
+    dxdt[5] = gamma[1]*s[4] - alpha[0]*s[5]*lambda1 - mu * s[5]
+    dxdt[6] = alpha[0]*s[5]*lambda1 - gamma[0]*s[6] - mu * s[6]
+    dxdt[7] = gamma[0] * s[6] + gamma[1]*s[3] - mu * s[7]
+    return s + np.dot(dxdt, h)
+
+def euler(f, y0, h, end, output_interval):
+    output = []
+    y = y0
+    t = 0.0
+    while t < end:
+        y = step_diff_eqs(y, h, t)
+        t += h
+        if t % output_interval == 0:
+            output.append(y)
+
+    return np.asarray(output)
+
+
+points = euler(step_diff_eqs, ic, step_size, end_time, output_interval)
+```
+
+The only steps here are:
+
+1. Adding the interface from [Figure E](#fig-e). We know that wherever the existing Euler method code is, it will depend on the standard `f`, `y0`, `h`, and `end` parameters (ignoring differences in variable names). It's the same algorithm, so it will depend on the same data.
+2. Moving the while loop into the function with any variables it depends on. This section is virtually identical to the algorithm we know from studying the Euler method. Data is passed to differential equations and then accumulated.
+3. Changing the variable names to the equivalent names in the `euler` parameters. `h` is `step_size`, `y0` is `ic` or initial conditions, `f` is `step_diff_eqs` et cetera.
+4. Calling the function in place of the code. (Same process as [Figure f](#fig-f).)
+5. Adding one extra parameter `output_interval` that's used to reduce the number of points returned. Since we're keeping the variable name the same, it can just be added to the function signature. (This doesn't contract the prediction that the interface is knowable in advance because this function does more than the Euler method. It also samples from the output. This could also be factored out into its own function.)
+
+The code runs and the output is identical to the original. However, there's some of the Euler method algorithm that's still not in the `euler` function: `s + np.dot(dxdt, h)`
+
+`np.dot` returns the [dot product](https://numpy.org/doc/stable/reference/generated/numpy.dot.html) of two arrays, and `s`, the equivalent of the `y` variable is being added to it. This looks like the accumulation step:
+
+![Euler accumulator](images/euler_acc.svg)
+
+And that step is missing from `euler` so let's refactor so the accumulation is done in the function, and `step_diff_eqs` is only differential equations.
+
+### Fig. H Final refactor
+
+```python
+import numpy as np
+
+end_time = 365000
+output_interval = 365.0
+step_size = 1.0
+ic = [0.2, 0.001, 0.02, 0.0, 0.001, 0.02, 0.0, 0.758]
+gamma = [0.14285714, 0.14285714]
+mu = 0.000273972602739726
+alpha = [1., 1.]
+a = [1., 1.]
+omega = 0.01721420632103996
+beta = [0.14285714, 0.71428571]
+epsilon = 0.1
+
+def step_diff_eqs(s, t):
+    dxdt = np.zeros(8)
+
+    # transmission rates
+    forcing = 1 + epsilon*np.cos(omega*t)
+    beta_0 = beta[0]*forcing
+    beta_1 = beta[1]*forcing
+
+    # forces of infection
+    lambda1 = beta_0*(s[1]+a[0]*s[6])
+    lambda2 = beta_1*(s[4]+a[1]*s[3])
+
+    dxdt[0] = mu - s[0] * (lambda1 + lambda2) - mu * s[0]
+    dxdt[1] = s[0]*lambda1 - gamma[0]*s[1] - mu * s[1]
+    dxdt[2] = gamma[0]*s[1] - alpha[1]*s[2]*lambda2 - mu * s[2]
+    dxdt[3] = alpha[1]*s[2]*lambda2 - gamma[1]*s[3] - mu * s[3]
+    dxdt[4] = s[0] * lambda2 - gamma[1]*s[4] - mu * s[4]
+    dxdt[5] = gamma[1]*s[4] - alpha[0]*s[5]*lambda1 - mu * s[5]
+    dxdt[6] = alpha[0]*s[5]*lambda1 - gamma[0]*s[6] - mu * s[6]
+    dxdt[7] = gamma[0] * s[6] + gamma[1]*s[3] - mu * s[7]
+    return dxdt
+
+def euler(f, y0, h, end, output_interval):
+    output = []
+    y = y0
+    t = 0.0
+    while t < end:
+        y = y + np.dot(f(y, t), h)
+        t += h
+        if t % output_interval == 0:
+            output.append(y)
+
+    return np.asarray(output)
+
+
+points = euler(step_diff_eqs, ic, step_size, end_time, output_interval)
+```
+
+The three steps Figures [D](fig-d), [G](fig-g), and [H](fig-h) can be shown to be functionally equivalent by putting a `print(points)` at the bottom and running `python fig_g.py > fig_g.out` (i.e.) and then using diff to compare them. The output is too large to put in a test fixture, but unit tests would be a good way to do this in general as you refactor.
+
+To verify that this implementation is correct in that the refactored function is the Euler method, there are other implementations in Python such as the one on [Rosetta Code](https://rosettacode.org/wiki/Euler_method#Python) or in a [textbook](https://pythonnumericalmethods.berkeley.edu/notebooks/chapter22.03-The-Euler-Method.html). (Two algorithms can be compared by passing them identical inputs and comparing outputs, or "algebraically" by modifying one with code changes that don't change the functionality such as variable name replacement, order of parameters etc until it's identical to the other.)
+
+In practice, algorithms like this aren't reimplemented other than in special cases, but it helps here to validate the refactor. Assuming a parameter like `output_interval` is not available in existing libraries, we might also want to confirm the base implementation and then add this functionality.
+
+There are now two functions that can be run independently of one another, and we don't need a concept of how all the code should run. We can think about each part independently. As well, the functions can be _tested_ separately. We can think about valid input/output pairs for an "euler" function, and those for interacting pathogens, not euler-pathogen pairs. When you think about the number of domains we could string together _on top of this code_, the task quickly becomes unwieldy.
+
+However, this refactor has costs. We're adding a small amount of complexity in the form of [indirection](https://en.wikipedia.org/wiki/Indirection) to reduce the total complexity. Adding complexity like this for a _tiny_ gain, is, of course, a net loss and should be avoided.
+
+It's almost always possible to break operations into smaller pieces, and to add needless levels of indirection. And the clarity problem remains domain-specific. Human judgment is required to make these decisions for a particular codebase and purpose.
+
+
+## Conclusion
+
+As you navigate the complexities of new codebases, and writing your own implementations, it's useful to think about coding as a logical discipline built on a foundation. The foundations of computing affect our everyday coding more than one might expect. And, even if you already use the reasoning described here from years of experience, it might be surprising how fundamental this reasoning is, and it might be surprising how certain you can be of it.
+
+The nature of computing is a blessing and a curse. Code is flexible. So extraneous complexity is always a danger. But the foundations of computing tell us it is also uniform. We can be confident there's always a way out.
+
+
+## Quiz
+
+1. Suppose you have a neighbor who fixes sweaters. There's a sign on their door that says, "Sweaters repaired here." You bring a torn sweater to their door and then pick up your repaired sweater later. If your neighbor is like an algorithm, what's the best analog for an _interface_?
+  - a. The door.
+  - b. A sewing kit.
+  - c. The tear.
+  - d. Payment for their services.
+
+2. Interfaces don't help the user reason about the code behind them. More formal interfaces are often called:
+  - a. applications
+  - b. validated
+  - c. well-defined
+  - d. user interfaces
+
+3. Two functions are functionally equivalent if they:
+  - a. Have the same variable names.
+  - b. Have the same interface.
+  - c. Have the same input/output pairs.
+  - d. Use the same data.
+
+4. A function ____ is its interface.
+  - a. body
+  - b. signature
+  - c. definition
+  - d. table
+
+5. Separation of Concerns can be achieved without knowing what the code does. Any set of 20 lines broken into four functions with five lines each is "separated" and "decoupled."
+  - True
+  - False
+
+
 ## Funding and Acknowledgments
 
 This work was funded by [Centers of Excellence for Influenza Research and Response (CEIRR)](https://www.ceirr-network.org/).
 
-Portions of this tutorial were adapted from the [Cobey Lab Handbook](https://cobeylab.github.io/lab_handbook/).
-
-
+Euler method images and equations from: Wikipedia contributors. (2022, June 28). Euler method. In Wikipedia, The Free Encyclopedia. Retrieved 00:43, July 19, 2022, from https://en.wikipedia.org/w/index.php?title=Euler_method&oldid=1095541798
