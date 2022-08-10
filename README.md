@@ -701,7 +701,7 @@ points = np.asarray(output)
 
 ## Example
 
-The code in [Figure D](#fig-b) is from a course on modeling pathogens. It's a demonstration in the class, but this code can do real work. Let's assume we're using it as part of a research project where we need a lot of of certainty, the code will become part of the support for our paper, and we may want to make this reusable at least within this analysis. Potentially, this could be the start of a longer project. For all these reasons, we want to make the code as simple as possible, and also general and interoperable with what comes after it.
+The code in [Figure D](#fig-d) is from a course on modeling pathogens. It's a demonstration in the class, but this code can do real work. Let's assume we're using it as part of a research project where we need a lot of of certainty, the code will become part of the support for our paper, and we may want to make this reusable at least within this analysis. Potentially, this could be the start of a longer project. For all these reasons, we want to make the code as simple as possible, and also general and interoperable with what comes after it.
 
 First, remember that there isn't an absolute standard of clarity. The way the code is structured with the most clarity depends on the domain, or purpose in the real world. In this case, we can consult the class notes to see that the code includes a system of ordinary differential equations (ODEs) that represent two strains of a pathogen interacting in a population with different transmission rates, recovery rates and other parameters.
 
