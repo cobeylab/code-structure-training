@@ -1,5 +1,4 @@
 # Code Structure for Science
-### How to write canonical software.
 
 ## Part 1: Foundation, Functional Programming, Separation of Concerns
 
