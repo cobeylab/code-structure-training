@@ -1,6 +1,6 @@
 # Code Structure for Science
 
-## Part 1: Foundation, Functional Programming, Separation of Concerns
+## Part 1: Foundation, Programming with Functions, Common Patterns and Principles
 
 ## Prerequisites
 
@@ -409,7 +409,7 @@ Another way to describe pure functions, and their benefits, is to say that pure 
 Even if a program doesn't need to be rewritten, pure functions tend to be simpler to understand. They can be reasoned about in isolation, and without knowing the entire history of a particular run of the program. Remember, in the [example above](#fig-a), it's not just that `run_something` _can_ modify `x` or `y`, it's that you also need to figure out if `run_something` _will have been called_ in a particular run of the program.
 
 
-### Limits to Functional Programming
+### Limits to Programming with Pure Functions
 
 Functional Programming, or programming with pure functions, is part of a foundational understanding of modularity, testability, and complexity. Taken to the extreme, functional programming renders a program, in the words of one of the authors of the Haskell programming language, Simon Peyton Jones, "useless." A strictly pure application cannot have any side effects, and cannot affect the world. Running it on a computer will have one effect. The machine ["gets hot."](https://youtu.be/iSmkqocn0oQ?t=193)
 
@@ -431,10 +431,12 @@ Purely functional programs also tend to have longer and longer function signatur
 
 For these reasons, functional programming is generally considered a North Star and not a strict goal to be achieved. For most programming tasks, the direction towards simplicity is _in the direction of_ pure functions.
 
+Note: There is also a discipline of Functional Programming that goes beyond the definition of using pure functions into [abstract structures](https://en.wikipedia.org/wiki/Monad_(functional_programming)) of pure functions, and algebraic rules these structures must obey. This can be useful for certain domains, but is outside the scope of the recommendations here. The ability to deconstruct any program into universal components, and to speak the "language" of functions has many benefits outside of the full paradigm.
+
 
 ## Separation of Concerns
 
-Another core principle of code structure is Separation of Concerns. Separating concerns is breaking a program into discrete components not unlike functional programming. Separation of Concerns goes further to say that the functionality of each component should be one "concern," meaning it should be specialized. This usually happens naturally no matter why you're  making your code more modular but the principle that concerns should be separated highlights the fact that modularity is useless as a principle for thinking about things in isolation if the modules aren't conceptually isolated. Their functionality overlaps in complex ways even if their variables do not.
+Another core principle of code structure is Separation of Concerns. Separating concerns is breaking a program into discrete components not unlike programming with functions. Separation of Concerns goes further to say that the functionality of each component should be one "concern," meaning it should be specialized. This usually happens naturally no matter why you're  making your code more modular but the principle that concerns should be separated highlights the fact that modularity is useless as a principle for thinking about things in isolation if the modules aren't conceptually isolated. Their functionality overlaps in complex ways even if their variables do not.
 
 Separation of Concerns is also limited to being a subjective measurement by a very human definition of what a "concern" is. Concerns can be thought of analytically as _things that can be changed in isolation_ without changing functionality of the application. This will depend on the application as a whole, but it gives an objective measure given some real-world concern.
 
